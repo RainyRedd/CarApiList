@@ -1,0 +1,129 @@
+class Car {
+  constructor(brand, model, price, year) {
+    this.brand = brand;
+    this.model = model;
+    this.price = price;
+    this.year = year;
+  }
+
+  age() {
+    return new Date().getFullYear() - this.year;
+  }
+}
+
+const now = new Date();
+const currentYear = now.getFullYear();
+
+const brandInput = document.getElementById('brandInput');
+const modelInput = document.getElementById('modelInput');
+const priceInput = document.getElementById('priceInput');
+const yearInput = document.getElementById('yearInput');
+const saveBtn = document.getElementById('saveCarBtn');
+const tableBody = document.querySelector('#carTable tbody');
+
+let cars = [];
+let editIndex = null;
+
+
+function loadCars() {
+  const data = localStorage.getItem('cars');
+  if (data) {
+
+    cars = JSON.parse(data).map(carObj =>
+      new Car(carObj.brand, carObj.model, carObj.price, carObj.year)
+    );
+  } else {
+    cars = [];
+  }
+}
+
+
+function saveCars() {
+  localStorage.setItem('cars', JSON.stringify(cars));
+}
+
+function renderTable() {
+  tableBody.innerHTML = '';
+  cars.forEach((car, idx) => {
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+      <td>${car.brand}</td>
+      <td>${car.model}</td>
+      <td>$${car.price.toFixed(2)}</td>
+      <td>${car.year}</td>
+      <td>${car.age()}</td>
+      <td>
+        <button data-action="edit" data-index="${idx}">Edit</button>
+        <button data-action="delete" data-index="${idx}">Delete</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+function resetForm() {
+  brandInput.value = '';
+  modelInput.value = '';
+  priceInput.value = '';
+  yearInput.value = '';
+  saveBtn.textContent = 'Save';
+  editIndex = null;
+}
+
+function handleSaveOrUpdate() {
+  const brand = brandInput.value.trim();
+  const model = modelInput.value.trim();
+  const price = parseFloat(priceInput.value);
+  const year = parseInt(yearInput.value, 10);
+
+  if (!brand || !model || isNaN(price) || isNaN(year)) {
+    alert('Please fill out all fields correctly.');
+    return;
+  }
+
+  const car = new Car(brand, model, price, year);
+
+  if (editIndex === null) {
+    cars.push(car);
+  } else {
+    cars[editIndex] = car;
+  }
+
+  saveCars();
+  renderTable();
+  resetForm();
+}
+
+function handleTableClick(e) {
+  const btn = e.target;
+  if (!btn.dataset.action) return;
+
+  const idx = Number(btn.dataset.index);
+
+  if (btn.dataset.action === 'edit') {
+    const car = cars[idx];
+    brandInput.value = car.brand;
+    modelInput.value = car.model;
+    priceInput.value = car.price;
+    yearInput.value = car.year;
+    saveBtn.textContent = 'Update';
+    editIndex = idx;
+  }
+
+  if (btn.dataset.action === 'delete') {
+    if (confirm('Remove this car?')) {
+      cars.splice(idx, 1);
+      saveCars();
+      renderTable();
+      if (editIndex === idx) resetForm();
+    }
+  }
+}
+
+saveBtn.addEventListener('click', handleSaveOrUpdate);
+tableBody.addEventListener('click', handleTableClick);
+
+
+loadCars();
+renderTable();
